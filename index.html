@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calibrate — adaptive GMAT drill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --white:#FFFFFF;
+    --blue:#0000FF;
+    --blue-04:rgba(0,0,255,0.04);
+    --blue-08:rgba(0,0,255,0.08);
+    --blue-15:rgba(0,0,255,0.18);
+    --blue-40:rgba(0,0,255,0.68);
+    --blue-70:rgba(0,0,255,0.85);
+    --radius:3px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html, body{
+    background:#FFFFFF;
+  }
+  body{
+    color:var(--blue);
+    font-family:'Inter', -apple-system, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{
+    font-family:inherit;
+  }
+  .app{
+    display:grid;
+    grid-template-columns:220px 1fr;
+    min-height:100vh;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    background:var(--white);
+    border-right:1px solid var(--blue-15);
+    padding:28px 22px;
+    display:flex;
+    flex-direction:column;
+  }
+  .brand{
+    font-weight:800;
+    font-size:19px;
+    letter-spacing:0.02em;
+    color:var(--blue);
+  }
+  .brand-sub{
+    font-size:10px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--blue-40);
+    margin-top:4px;
+    font-weight:600;
+  }
+  nav{margin-top:40px; display:flex; flex-direction:column; gap:16px;}
+  .nav-item{
+    position:relative;
+    display:inline-flex;
+    align-items:baseline;
+    gap:6px;
+    width:fit-content;
+    font-size:13.5px;
+    font-weight:600;
+    letter-spacing:0.01em;
+    color:var(--blue-40);
+    cursor:pointer;
+    padding-bottom:4px;
+    transition:color 0.2s;
+  }
+  .nav-item::after{
+    content:'';
+    position:absolute;
+    left:0;
+    bottom:0;
+    height:2px;
+    width:0;
+    background:var(--blue);
+    transition:width 0.28s ease;
+  }
+  .nav-item:hover, .nav-item.active{color:var(--blue);}
+  .nav-item:hover::after, .nav-item.active::after{width:100%;}
+  .nav-item .arrow{
+    font-size:13px;
+    font-weight:500;
+    opacity:0;
+    transform:translateX(-4px);
+    transition:opacity 0.2s, transform 0.2s;
+  }
+  .nav-item:hover .arrow{opacity:1; transform:translateX(0);}
+  .sidebar-foot{
+    margin-top:auto;
+    padding-top:24px;
+    border-top:1px solid var(--blue-15);
+    font-size:10px;
+    color:var(--blue-40);
+    line-height:1.7;
+    font-weight:500;
+  }
+
+  /* ---------- Main ---------- */
+  main{padding:28px 40px 60px;}
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding-bottom:24px;
+    border-bottom:1px solid var(--blue-15);
+    margin-bottom:32px;
+  }
+  .topbar-metrics{display:flex; gap:28px;}
+  .metric{display:flex; flex-direction:column;}
+  .metric-label{
+    font-size:9.5px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--blue-40);
+    font-weight:600;
+  }
+  .metric-value{
+    font-size:22px;
+    font-weight:800;
+    margin-top:2px;
+    color:var(--blue);
+  }
+  .btn-start{
+    background:var(--blue);
+    color:var(--white);
+    font-weight:700;
+    font-size:13.5px;
+    border:none;
+    padding:12px 22px;
+    border-radius:var(--radius);
+    cursor:pointer;
+    letter-spacing:0.01em;
+    transition:filter 0.15s;
+  }
+  .btn-start:hover{filter:brightness(1.3);}
+
+  .section-label{
+    font-size:10.5px;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--blue-40);
+    margin-bottom:16px;
+    font-weight:700;
+  }
+
+  html{scroll-behavior:smooth;}
+
+  .section-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    background:var(--blue);
+    color:var(--white);
+    text-decoration:none;
+    font-size:21px;
+    font-weight:800;
+    letter-spacing:-0.01em;
+    padding:22px 26px;
+    border-radius:var(--radius);
+    margin-bottom:20px;
+    cursor:pointer;
+    transition:background 0.15s;
+  }
+  .section-header:hover{background:rgba(0,0,255,0.85);}
+  .section-header .arrow{
+    font-size:20px;
+    transition:transform 0.25s ease;
+    flex-shrink:0;
+  }
+  .section-header:hover .arrow{transform:translateX(8px);}
+
+  .today-set-col{display:flex; flex-direction:column;}
+
+  @media (max-width: 880px){
+    .section-header{font-size:17px; padding:18px 20px;}
+  }
+
+  /* ---------- Calibration gauge ---------- */
+  .calibration-row{
+    display:grid;
+    grid-template-columns:300px 1fr;
+    gap:40px;
+    margin-bottom:44px;
+  }
+  .gauge-panel{
+    background:var(--white);
+    border:1px solid var(--blue-15);
+    border-radius:var(--radius);
+    padding:22px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .gauge-score{
+    font-size:34px;
+    font-weight:800;
+    margin-top:-58px;
+    color:var(--blue);
+  }
+  .gauge-score-label{
+    font-size:9.5px;
+    color:var(--blue-40);
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    margin-top:4px;
+    font-weight:600;
+  }
+  .gauge-range{
+    display:flex;
+    justify-content:space-between;
+    width:100%;
+    font-size:9.5px;
+    color:var(--blue-40);
+    margin-top:10px;
+  }
+
+  .subtopics{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    justify-content:center;
+  }
+  .subtopic-row{display:flex; align-items:center; gap:14px;}
+  .subtopic-name{
+    width:150px;
+    font-size:12.5px;
+    font-weight:500;
+    color:var(--blue-70);
+    flex-shrink:0;
+  }
+  .subtopic-track{
+    flex:1;
+    height:6px;
+    background:var(--blue-04);
+    border:1px solid var(--blue-15);
+    border-radius:2px;
+    position:relative;
+  }
+  .subtopic-band{
+    position:absolute;
+    top:-3px;
+    bottom:-3px;
+    width:16px;
+    background:transparent;
+    border-left:2px solid var(--blue-40);
+    border-right:2px solid var(--blue-40);
+  }
+  .subtopic-mark{
+    position:absolute;
+    top:-4px;
+    width:2px;
+    height:14px;
+    background:var(--blue);
+  }
+  .subtopic-pct{
+    width:34px;
+    text-align:right;
+    font-size:11.5px;
+    font-weight:700;
+    color:var(--blue);
+    flex-shrink:0;
+  }
+  .subtopic-empty{
+    width:74px;
+    font-weight:500;
+    font-style:italic;
+    color:var(--blue-40);
+  }
+
+  /* ---------- Two column: session + preview ---------- */
+  .work-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:28px;
+    margin-bottom:44px;
+  }
+  .card{
+    background:var(--white);
+    border:1px solid var(--blue-15);
+    border-radius:var(--radius);
+    padding:22px;
+  }
+  .card-title{
+    font-size:15.5px;
+    font-weight:700;
+    margin-bottom:6px;
+    color:var(--blue);
+  }
+  .card-sub{
+    font-size:12.5px;
+    color:var(--blue-70);
+    margin-bottom:18px;
+    line-height:1.5;
+  }
+  .session-stat{
+    display:flex;
+    justify-content:space-between;
+    font-size:12px;
+    font-weight:500;
+    color:var(--blue-70);
+    padding:9px 0;
+    border-top:1px solid var(--blue-15);
+  }
+  .session-stat span:last-child{
+    font-weight:700;
+    color:var(--blue);
+  }
+  .btn-secondary{
+    margin-top:16px;
+    width:100%;
+    background:transparent;
+    border:1px solid var(--blue);
+    color:var(--blue);
+    font-weight:700;
+    font-size:13px;
+    padding:11px;
+    border-radius:var(--radius);
+    cursor:pointer;
+    transition:background 0.15s;
+  }
+  .btn-secondary:hover{background:var(--blue-08);}
+
+  .q-tag{
+    display:inline-block;
+    font-size:9.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    font-weight:700;
+    color:var(--blue);
+    border:1px solid var(--blue);
+    padding:3px 7px;
+    border-radius:2px;
+    margin-bottom:14px;
+  }
+  .q-text{font-size:13.5px; line-height:1.6; margin-bottom:12px; color:var(--blue); font-weight:500;}
+  .q-statements{
+    font-size:12.5px;
+    color:var(--blue-70);
+    line-height:1.8;
+    margin-bottom:16px;
+    padding-left:14px;
+    border-left:2px solid var(--blue-15);
+  }
+  .q-choices{display:flex; flex-direction:column; gap:8px;}
+  .q-choice{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:12.5px;
+    color:var(--blue-70);
+    padding:9px 12px;
+    border:1px solid var(--blue-15);
+    border-radius:var(--radius);
+    cursor:pointer;
+    transition:border-color 0.15s, background 0.15s, color 0.15s;
+  }
+  .q-choice:hover{border-color:var(--blue-40);}
+  .q-choice-letter{
+    font-weight:700;
+    color:var(--blue-40);
+    width:14px;
+  }
+  .q-choice.correct{
+    border-color:var(--blue);
+    background:var(--blue);
+    color:var(--white);
+  }
+  .q-choice.correct .q-choice-letter{color:var(--white);}
+  .q-choice.wrong{
+    border-color:var(--blue);
+    border-width:2px;
+    background:var(--white);
+    color:var(--blue);
+  }
+  .q-feedback{
+    margin-top:12px;
+    font-size:11.5px;
+    color:var(--blue-70);
+    font-weight:600;
+    min-height:14px;
+  }
+
+  /* ---------- Lesson strip ---------- */
+  .lesson-strip{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:18px;
+  }
+  .lesson-card{
+    background:var(--white);
+    border:1px solid var(--blue-15);
+    border-radius:var(--radius);
+    padding:18px;
+    cursor:pointer;
+    transition:border-color 0.15s, transform 0.15s, background 0.15s;
+  }
+  .lesson-card:hover{border-color:var(--blue); background:var(--blue-04); transform:translateY(-2px);}
+  .lesson-num{
+    font-size:10px;
+    color:var(--blue-40);
+    margin-bottom:10px;
+    font-weight:700;
+    letter-spacing:0.04em;
+  }
+  .lesson-title{
+    font-size:13.5px;
+    font-weight:700;
+    margin-bottom:8px;
+    line-height:1.3;
+    color:var(--blue);
+  }
+  .lesson-meta{
+    font-size:11px;
+    color:var(--blue-40);
+    font-weight:500;
+  }
+
+  @media (max-width: 880px){
+    .app{grid-template-columns:1fr;}
+    .sidebar{display:none;}
+    .calibration-row, .work-row{grid-template-columns:1fr;}
+    .lesson-strip{grid-template-columns:1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">CALIBRATE</div>
+    <div class="brand-sub">a private instrument, built for one</div>
+    <nav>
+      <div class="nav-item active">Bench <span class="arrow">→</span></div>
+      <div class="nav-item">Primer <span class="arrow">→</span></div>
+      <div class="nav-item">Archive <span class="arrow">→</span></div>
+      <div class="nav-item">Readout <span class="arrow">→</span></div>
+    </nav>
+    <div class="sidebar-foot">
+      SESSION LOG<br>
+      no sessions yet<br>
+      begin whenever you're ready
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div></div>
+      <button class="btn-start">Start today's set →</button>
+    </div>
+
+    <a href="#calibration" class="section-header">Calibration <span class="arrow">→</span></a>
+    <div class="calibration-row" id="calibration">
+      <div class="gauge-panel">
+        <svg id="gauge" width="240" height="150" viewBox="0 0 240 150">
+          <path d="M 20 130 A 100 100 0 0 1 220 130" fill="none" stroke="rgba(0,0,255,0.12)" stroke-width="10" stroke-linecap="round"/>
+          <g id="needle" style="transform-origin:120px 130px; transform:rotate(0deg);">
+            <line x1="120" y1="130" x2="120" y2="46" stroke="rgba(0,0,255,0.35)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="4 4"/>
+            <circle cx="120" cy="130" r="5" fill="rgba(0,0,255,0.35)"/>
+          </g>
+          <text x="24" y="146" font-family="Inter" font-size="9" fill="rgba(0,0,255,0.68)">205</text>
+          <text x="200" y="146" font-family="Inter" font-size="9" fill="rgba(0,0,255,0.68)">805</text>
+        </svg>
+        <div class="gauge-score">—</div>
+        <div class="gauge-score-label">no estimate yet — fills in as you log sessions</div>
+      </div>
+
+      <div class="subtopics">
+        <div class="subtopic-row">
+          <div class="subtopic-name">Problem Solving</div>
+          <div class="subtopic-track"></div>
+          <div class="subtopic-pct subtopic-empty">not started</div>
+        </div>
+        <div class="subtopic-row">
+          <div class="subtopic-name">Data Sufficiency</div>
+          <div class="subtopic-track"></div>
+          <div class="subtopic-pct subtopic-empty">not started</div>
+        </div>
+        <div class="subtopic-row">
+          <div class="subtopic-name">Critical Reasoning</div>
+          <div class="subtopic-track"></div>
+          <div class="subtopic-pct subtopic-empty">not started</div>
+        </div>
+        <div class="subtopic-row">
+          <div class="subtopic-name">Reading Comp.</div>
+          <div class="subtopic-track"></div>
+          <div class="subtopic-pct subtopic-empty">not started</div>
+        </div>
+        <div class="subtopic-row">
+          <div class="subtopic-name">Multi-Source Reas.</div>
+          <div class="subtopic-track"></div>
+          <div class="subtopic-pct subtopic-empty">not started</div>
+        </div>
+        <div class="subtopic-row">
+          <div class="subtopic-name">Two-Part Analysis</div>
+          <div class="subtopic-track"></div>
+          <div class="subtopic-pct subtopic-empty">not started</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="work-row">
+      <div class="today-set-col">
+        <a href="#today-queue" class="section-header">Today's Queue <span class="arrow">→</span></a>
+        <div class="card" id="today-queue">
+          <div class="card-title">Today's set</div>
+          <div class="card-sub">Weighted toward your weakest band — Multi-Source Reasoning and Data Sufficiency — with a few Critical Reasoning warm-ups first.</div>
+          <div class="session-stat"><span>Questions queued</span><span>18</span></div>
+          <div class="session-stat"><span>Difficulty mix</span><span>40% at ceiling</span></div>
+          <div class="session-stat"><span>Spaced-repeat reviews</span><span>5 missed, resurfacing</span></div>
+          <div class="session-stat"><span>Est. time</span><span>34 min</span></div>
+          <button class="btn-secondary">Begin session</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="q-tag">Data Sufficiency</div>
+        <div class="q-text">A shop sells only pens and notebooks. Is the shop's total revenue for the day greater than 1,200 MAD?</div>
+        <div class="q-statements">
+          (1) The shop sold 45 pens and 30 notebooks.<br>
+          (2) Each notebook sells for exactly 3 times the price of a pen.
+        </div>
+        <div class="q-choices" id="q-choices">
+          <div class="q-choice" data-answer="wrong"><span class="q-choice-letter">A</span>Statement (1) alone is sufficient, but (2) alone is not.</div>
+          <div class="q-choice" data-answer="wrong"><span class="q-choice-letter">B</span>Statement (2) alone is sufficient, but (1) alone is not.</div>
+          <div class="q-choice" data-answer="wrong"><span class="q-choice-letter">C</span>Both together are sufficient, but neither alone is.</div>
+          <div class="q-choice" data-answer="correct"><span class="q-choice-letter">D</span>Each statement alone is sufficient.</div>
+          <div class="q-choice" data-answer="wrong"><span class="q-choice-letter">E</span>Together they are still not sufficient.</div>
+        </div>
+        <div class="q-feedback" id="q-feedback"></div>
+      </div>
+    </div>
+
+    <a href="#lesson-library" class="section-header">Lesson Library <span class="arrow">→</span></a>
+    <div class="lesson-strip" id="lesson-library">
+      <div class="lesson-card">
+        <div class="lesson-num">01 · QUANT</div>
+        <div class="lesson-title">Divisibility traps in Problem Solving</div>
+        <div class="lesson-meta">6 min · 5 checks</div>
+      </div>
+      <div class="lesson-card">
+        <div class="lesson-num">02 · DATA INSIGHTS</div>
+        <div class="lesson-title">The sufficiency test, statement by statement</div>
+        <div class="lesson-meta">8 min · 6 checks</div>
+      </div>
+      <div class="lesson-card">
+        <div class="lesson-num">03 · VERBAL</div>
+        <div class="lesson-title">Assumption vs. inference in CR</div>
+        <div class="lesson-meta">7 min · 5 checks</div>
+      </div>
+      <div class="lesson-card">
+        <div class="lesson-num">04 · DATA INSIGHTS</div>
+        <div class="lesson-title">Reading multi-source tables under time pressure</div>
+        <div class="lesson-meta">9 min · 4 checks</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  document.querySelectorAll('.q-choice').forEach(choice => {
+    choice.addEventListener('click', () => {
+      const isCorrect = choice.dataset.answer === 'correct';
+      document.querySelectorAll('.q-choice').forEach(c => c.classList.remove('correct','wrong'));
+      choice.classList.add(isCorrect ? 'correct' : 'wrong');
+      const feedback = document.getElementById('q-feedback');
+      feedback.textContent = isCorrect
+        ? '✓ correct — logged to Data Sufficiency, ability estimate updated.'
+        : '✕ not quite — each statement fixes the price ratio independently. Re-check statement (2) alone.';
+    });
+  });
+</script>
+
+</body>
+</html>
